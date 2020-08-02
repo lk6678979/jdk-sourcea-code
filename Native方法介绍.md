@@ -156,7 +156,7 @@ Hello，JNI
 registerNatives本质上就是一个本地方法，但这又是一个有别于一般本地方法的本地方法。上述代码的功能就是先定义了registerNatives()方法，然后当该类被加载的时候，调用该方法完成对该类中本地方法的注册。这里你可能会有一些疑惑，比如，到底注册了哪些方法？为什么要注册？具体又是怎么注册的？  
 * 到底注册了哪些方法？细心的你可能还会发现，在Object类中，除了有registerNatives这个本地方法之外，还有hashCode()、clone()等本地方法，而在Class类中有forName0()这样的本地方法等等。也就是说，凡是包含registerNatives()本地方法的类，同时也包含了其他本地方法。所以当包含registerNatives()方法的类被加载的时候，注册的方法就是该类所包含的除了registerNatives()方法以外的所有本地方法。  
 * 为什么要注册？一个Java程序要想调用一个本地方法，需要执行两个步骤：第一，通过System.loadLibrary()将包含本地方法实现的动态文件加载进内存；第二，当Java程序需要调用本地方法时，虚拟机在加载的动态文件中定位并链接该本地方法，从而得以执行本地方法。registerNatives()方法的作用就是取代第二步，让程序主动将本地方法链接到调用方，当Java程序需要调用本地方法时就可以直接调用，而不需要虚拟机再去定位并链接。
-* 使用registerNatives()方法的三点好处：
+* 使用registerNatives()方法的三点好处：  
 (1)通过registerNatives方法在类被加载的时候就主动将本地方法链接到调用方，比当方法被使用时再由虚拟机来定位和链接更方便有效；  
 (2)如果本地方法在程序运行中更新了，可以通过调用registerNative方法进行更新；  
 (2)Java程序需要调用一个本地应用提供的方法时，因为虚拟机只会检索本地动态库，因而虚拟机是无法定位到本地方法实现的，这个时候就只能使用registerNatives()方法进行主动链接  
@@ -183,9 +183,3 @@ registerNatives本质上就是一个本地方法，但这又是一个有别于�
 8. https://www.jianshu.com/p/713a79293bf1 JNI 基础 - JNIEnv 的实现原理
 
 9. https://www.jianshu.com/p/be943b4958f4 Java Object.hashCode()返回的是对象内存地址
-
-
-
-
-
-
