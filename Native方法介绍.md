@@ -35,9 +35,37 @@ public class Object {
  native修饰的方法并不会给调用它的类造成任何影响，它与其他method一样可以返回任何java类型。我们可以将它看做是一个正常的java方法来使用。
   
 ## 4. JAVA如何加载和使用native申明的外部方法
-·  如果一个方法描述符内有native，那么这个方法将成为Java Native Interface中的一部分，这个描述符块将有一个指向该方法的实现的指针。  
-·  这些实现在一些DLL文件内，DLL会被操作系统加载到java程序的地址空间，这个空间称为Java Native Method Libraries。  
-·  当一个带有本地方法的类被加载时，其相关的DLL并未被加载，因此指向方法实现的指针并不会被设置。当本地方法被调用之前，这些DLL才会被加载，这是通过调用java.system.loadLibrary()实现的。
+* 如果一个方法描述符内有native，那么这个方法将成为Java Native Interface中的一部分，这个描述符块将有一个指向该方法的实现的指针。  
+* native方法的实现在一些DLL文件内，DLL会被操作系统加载到java程序的地址空间，这个空间称为Java Native Method Libraries。  
+* 当一个带有本地方法的类被加载时，其相关的DLL并未被加载，因此指向方法实现的指针并不会被设置。当本地方法被调用之前，这些DLL才会被加载，这是通过调用java.system.loadLibrary()实现的。
 
 ## 5. JAVA如何加载DLL
-
+* Java的System.load 和 System.loadLibrary都可以用来加载库文件
+ 
+* 例如你可以这样载入一个windows平台下JNI库文件：
+```
+System.load("C://Documents and Settings//TestJNI.dll"); //绝对路径
+```
+*  System.loadLibrary参数为库文件名
+例如你可以这样载入一个windows平台下JNI库文件
+```
+System.loadLibrary ("TestJNI");
+```
+这里TestJNI必须在 java.library.path这一jvm变量所指向的路径中，可以通过如下方法获得该变量的值：
+```
+System.getProperty("java.library.path");
+```
+默认情况下，Windows平台下包含下面的路径：
+  1）和jre相关的目录
+  2）程序当前目录
+  3）Windows目录
+  4）系统目录(system32)
+  5）系统环境变量path指定的目录
+ 
+4.在linux下添加一个java.library.path的方法如下：
+  在/etc/profile 后面加上一行 export LB_LIBRARY_PATH=路径
+ 
+5.在执行程序的时候可以显示指定， -Djava.library.path=路径，这种会清除掉预设置的java.library.path的值 。实例如下：
+```
+java -jar -Djava.library.path=/home/fly/Desktop/sound_dream sound.war
+```
