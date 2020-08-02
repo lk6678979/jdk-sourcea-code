@@ -34,7 +34,10 @@ public class Object {
  native可以与所有其他的java标识符连用，abstract除外。这是合理的，因为native暗示这些方法室友实现体的，只不过它们不是用java实现的，但abstract却显然的指明这些方法无实现体。
  native修饰的方法并不会给调用它的类造成任何影响，它与其他method一样可以返回任何java类型。我们可以将它看做是一个正常的java方法来使用。
   
-## 4. JAVA如何加载和使用native什么的外部方法
-· 如果一个方法描述符内有native，那么这个方法将成为Java Native Interface中的一部分，这个描述符块将有一个指向该方法的实现的指针。  
-· 这些实现在一些DLL文件内，DLL会被操作系统加载到java程序的地址空间，这个空间称为Java Native Method Libraries。  
-· 当一个带有本地方法的类被加载时，其相关的DLL并未被加载，因此指向方法实现的指针并不会被设置。当本地方法被调用之前，这些DLL才会被加载，这是通过调用java.system.loadLibrary()实现的。
+## 4. JAVA如何加载和使用native申明的外部方法
+·  如果一个方法描述符内有native，那么这个方法将成为Java Native Interface中的一部分，这个描述符块将有一个指向该方法的实现的指针。  
+·  这些实现在一些DLL文件内，DLL会被操作系统加载到java程序的地址空间，这个空间称为Java Native Method Libraries。  
+·  当一个带有本地方法的类被加载时，其相关的DLL并未被加载，因此指向方法实现的指针并不会被设置。当本地方法被调用之前，这些DLL才会被加载，这是通过调用java.system.loadLibrary()实现的。
+
+## 5. JAVA如何加载DLL
+
