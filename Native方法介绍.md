@@ -182,4 +182,6 @@ registerNatives本质上就是一个本地方法，但这又是一个有别于�
 
 8. https://www.jianshu.com/p/713a79293bf1 JNI 基础 - JNIEnv 的实现原理
 
-9. https://www.jianshu.com/p/be943b4958f4 Java Object.hashCode()返回的是对象内存地址
+9. https://www.jianshu.com/p/be943b4958f4 Java Object.hashCode()返回的是对象内存地址？
+
+10.https://www.it610.com/article/1283509446223347712.htm Object.hashCode()源码和测试
