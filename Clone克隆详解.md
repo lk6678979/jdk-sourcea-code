@@ -136,4 +136,218 @@ public interface Cloneable {
 * 如果在没有实现Cloneable接口的实例上调用Object的clone()方法，则会导致抛出CloneNotSupporteddException；
 * 实现此接口的类应该使用公共方法重写Object的clone()方法，Object的clone()方法是一个受保护的方法；
 因此想实现clone的话，除了继承Object类外，还需要实现Cloneable接口;
+## 3.深克隆和浅克隆
+### 3.1 浅拷贝
+指拷贝对象时仅仅拷贝对象本身（包括对象中的基本变量），而不拷贝对象包含的引用指向的对象。
+```
+public class Student implements Cloneable {
+	private int age;
+	private String name;
+ 
+	...
+ 
+	@Override
+	public String toString() {
+		return "Student [age=" + age + ", name=" + name + "]";
+	}
+ 
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		// TODO Auto-generated method stub
+		return super.clone();
+	}
+ 
+	/**
+	 * @param args
+	 * @throws CloneNotSupportedException
+	 */
+	public static void main(String[] args) throws CloneNotSupportedException {
+		Student student1 = new Student(20, "张三");
+		Student student2 = (Student) student1.clone();
+		student2.setAge(22);
+		System.out.println("student1：" + student1.getName() + "-->"+ student1.getAge());
+		System.out.println("student2：" + student2.getName() + "-->"+ student2.getAge());
+ 
+	}
+}
+```
+运行结果：
+```
+student1：张三-->20
+student2：张三-->22
+```
+修改student2的age值 但是没有影响 student1的值  
+如果对象中有其他对象的引用，浅克隆的话会出现什么问题呢？
+```
 
+class Teacher implements Cloneable {
+	private String name;
+	private Student student;
+	
+	...
+ 
+	@Override
+	public String toString() {
+		return "Teacher [name=" + name + ", student=" + student + "]";
+	}
+	
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		// TODO Auto-generated method stub
+		return super.clone();
+	}
+	public static void main(String[] args) throws CloneNotSupportedException {
+		Student s1 = new Student();
+		s1.setAge(20);
+		s1.setName("张三");
+		Teacher teacher1 = new Teacher();
+		teacher1.setName("小赵老师");
+		teacher1.setStudent(s1);
+		//为什么会出现以下结果, Teacher中的clone方法
+		Teacher teacher2 = (Teacher)teacher1.clone();
+		Student s2 = teacher2.getStudent();
+		s2.setName("李四");
+		s2.setAge(30);
+		System.out.println("teacher1:"+teacher1);
+		System.out.println("teacher2:"+teacher2);	
+	}	
+}
+```
+运行结果：
+```
+teacher1:Teacher [name=小赵老师, student=Student [age=30, name=李四]]
+teacher2:Teacher [name=小赵老师, student=Student [age=30, name=李四]
+```
+teacher1的学生s1原本是张三，再对teache,1克隆后得到teacher2，由于默认super.clone()是浅克隆，所以当前的teacher2实际上就指向teacher1，所以得到teacher2的学生为张三，修改为李四后teacher1的学生也对应改变。
+### 5.2 深克隆
+深克隆一般有两种实现方式：
+* 让类实现序列化接口Serializable。然后对对象进行序列化操作，然后反序列化得到对象。
+* 先调用super.clone()方法克隆出一个新对象来，然后再调用子对象的clone方法实现深度克隆。
+#### 5.2.1 序列化
+```java
+
+public class TestRean implements Serializable {
+	private String name;
+	private SonReen sonReen;
+ 
+	public TestRean(String name, SonReen sonReen) {
+		this.name = name;
+		this.sonReen = sonReen;
+	}
+ 
+	public String getName() {
+		return name;
+	}
+ 
+	public void setName(String name) {
+		this.name = name;
+	}
+ 
+	public SonReen getSonReen() {
+		return sonReen;
+	}
+ 
+	public void setSonReen(SonReen sonReen) {
+		this.sonReen = sonReen;
+	}
+ 
+	public Object deepClone() throws Exception {
+ 
+		ByteArrayOutputStream bo = new ByteArrayOutputStream();
+		ObjectOutputStream out = new ObjectOutputStream(bo);
+		out.writeObject(this);
+ 
+		ByteArrayInputStream bi = new ByteArrayInputStream(bo.toByteArray());
+		ObjectInputStream oi = new ObjectInputStream(bi);
+		return oi.readObject();
+	}
+ 
+	public static void main(String[] args) throws Exception {
+ 
+		SonReen sonReen = new SonReen("abc");
+		TestRean t1 = new TestReen("李四", sonReen);
+		TestRean t2 = (TestReen) t1.deepClone();
+		System.out.println("t1==t2 ? " + (t1 == t2));
+		System.out.println("t1.name==t2.name ? " + (t1.getName() == t2.getName()));
+		System.out.println("t1.sonReen==t2.sonReen ? " + (t1.getSonReen() == t2.getSonReen()));
+		System.out.println("t1.sonReen.SonName==t2.sonReen.SonName ? "
+				+ (t1.getSonReen().getSonName() == t2.getSonReen().getSonName()));
+		System.out.println("========================================");
+		t1.setName("王五");
+		System.out.println(t1.getName());
+		System.out.println(t2.getName());
+	}
+}
+ 
+class SonReen implements Serializable {
+	private String sonName;
+ 
+	public SonReen(String sonName) {
+		super();
+		this.sonName = sonName;
+	}
+ 
+	public String getSonName() {
+		return sonName;
+	}
+ 
+	public void setSonName(String sonName) {
+		this.sonName = sonName;
+	}
+}
+```
+运行结果：
+```
+t1==t2 ? false
+t1.name==t2.name ? false
+t1.sonReen==t2.sonReen ? false
+t1.sonReen.SonName==t2.sonReen.SonName ? false
+========================================
+王五
+```
+通过序列化和反序列化。克隆出来的t2与t1不是一个对象，t2和t1内部的引用类型的成员变量也被克隆，不是克隆引用。
+#### 5.2.1 子对象clone
+```java
+
+class Body implements Cloneable {
+	public Head head;
+ 
+	public Body() {
+	}
+ 
+	public Body(Head head) {
+		this.head = head;
+	}
+ 
+	protected Object clone() throws CloneNotSupportedException {
+		Body newBody = (Body) super.clone();
+		newBody.head = (Head) head.clone();
+		return newBody;
+	}
+}
+ 
+class Head implements Cloneable {
+	public Head() {
+	}
+ 
+	protected Object clone() throws CloneNotSupportedException {
+		return super.clone();
+	}
+}
+ 
+public class TestReen {
+	public static void main(String[] args) throws CloneNotSupportedException {
+		Body body1 = new Body(new Head());
+		Body body2 = (Body) body1.clone();
+		System.out.println("body1 == body2 : " + (body1 == body2));
+		System.out.println("body1.head == body2.head : " + (body1.head == body2.head));
+ 
+	}
+}
+```
+运行结果：
+```
+body1 == body2 : false
+body1.head == body2.head : false
+```
+注意的:子对象也要实现Cloneable接口并且重写clone方法
