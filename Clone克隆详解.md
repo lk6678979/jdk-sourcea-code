@@ -350,4 +350,4 @@ public class TestReen {
 body1 == body2 : false
 body1.head == body2.head : false
 ```
-注意的:子对象也要实现Cloneable接口并且重写clone方法
+注意:子对象也要实现Cloneable接口并且重写clone方法
