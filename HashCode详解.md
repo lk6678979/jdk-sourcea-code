@@ -1,7 +1,5 @@
-转自 https://www.jianshu.com/p/be943b4958f4  
-一直以为Java Object.hashCode()的结果就是通过对象的内存地址做相关运算得到的，但是无意在网上看到有相应的意见争论，故抽时间从源码层面验证了剖析了hashCode的默认计算方法。
 ```
-先说结论：JDK8 默认hashCode的计算方法是通过和当前线程有关的一个随机数+三个确定值，运用Marsaglia's xorshift scheme随机数算法得到的一个随机数。和对象内存地址无关。
+JDK8 默认hashCode的计算方法是通过和当前线程有关的一个随机数+三个确定值，运用Marsaglia's xorshift scheme随机数算法得到的一个随机数。和对象内存地址无关。
 ```
 ## 1. 查找java.lang.Object.hashCode()源码
 ```java
@@ -445,5 +443,6 @@ if (hashCode == 4) {
 ```
 可以通过在JVM启动参数中添加-XX:hashCode=4，改变默认的hashCode计算方式
 ### 5.6. hashCode == 5
-返回的是一个与当前线程有关的随机数与其他三个固定值进行xorshift运算后的结果数,同一个对象每次hashcode()的值相同，修改堆内存的初始值后依旧相同
+返回的是一个与当前线程有关的随机数与其他三个固定值进行xorshift运算后的结果数,同一个对象每次hashcode()的值相同，修改堆内存的初始值后依旧相同  
 
+参考 https://www.jianshu.com/p/be943b4958f4  
