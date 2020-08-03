@@ -1,5 +1,6 @@
 ```
-JDK8 默认hashCode的计算方法是通过和当前线程有关的一个随机数+三个确定值，运用Marsaglia's xorshift scheme随机数算法得到的一个随机数。和对象内存地址无关。
+JDK8 默认hashCode的计算方法是通过和当前线程有关的一个随机数+三个确定值，运用Marsaglia's xorshift scheme
+随机数算法得到的一个随机数。和对象内存地址无关。
 ```
 ## 1. 查找java.lang.Object.hashCode()源码
 ```java
