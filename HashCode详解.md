@@ -399,7 +399,7 @@ t=(xˆ(x<<11));x=y;y=z;z=w; return( w=(wˆ(w>>19))ˆ(tˆ(t>>8)) );
 这就和上面计算hashCode的OpenJDK代码对应了起来。
 ## 5. 其他几类hashCode计算方案：
 ### 5.1. hashCode == 0
-此类方案返回一个Park-Miller伪随机数生成器生成的随机数
+此类方案返回一个Park-Miller伪随机数生成器生成的随机数,同一个对象每次hashcode()的值不同
 OpenJdk 6 &7的默认实现。http://hg.openjdk.java.net/jdk7u/jdk7u/hotspot/file/5b9a416a5632/src/share/vm/runtime/globals.hpp#l1100
 http://hg.openjdk.java.net/jdk6/jdk6/hotspot/file/5cec449cc409/src/share/vm/runtime/globals.hpp#l1128
 ```
@@ -412,7 +412,7 @@ if (hashCode == 0) {
   }
 ```
 ### 5.2. hashCode == 1
-此类方案将对象的内存地址，做移位运算后与一个随机数进行异或得到结果
+此类方案将对象的内存地址，做移位运算后与一个随机数进行异或得到结果,同一个对象每次hashcode()的值相同，修改堆内存的初始值后值会变化
 ```
 if (hashCode == 1) {
      // This variation has the property of being stable (idempotent)
@@ -423,7 +423,7 @@ if (hashCode == 1) {
   }
  ```
 ### 5.3. hashCode == 2
-此类方案返回固定的1
+此类方案返回固定的1，所有对象每次hashcode()的值都是1
 ```
 if (hashCode == 2) {
      value = 1 ;            // for sensitivity testing
@@ -437,12 +437,13 @@ if (hashCode == 3) {
   } 
 ```
 ### 5.5. hashCode == 4
-此类方案返回当前对象的内存地址
+此类方案返回当前对象的内存地址,同一个对象每次hashcode()的值相同，修改堆内存的初始值后值会变化
 ```
 if (hashCode == 4) {
      value = cast_from_oop<intptr_t>(obj) ;
   }
 ```
 可以通过在JVM启动参数中添加-XX:hashCode=4，改变默认的hashCode计算方式
-## 6. 测试hashCode的生成
+### 5.6. hashCode == 5
+返回的是一个与当前线程有关的随机数与其他三个固定值进行xorshift运算后的结果数,同一个对象每次hashcode()的值相同，修改堆内存的初始值后依旧相同
 
