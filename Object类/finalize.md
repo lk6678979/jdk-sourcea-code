@@ -80,3 +80,99 @@ See The Java™ Language Specification:
 12.6类实例的定稿 
 ```
 下面通过一个例子说明finalize方法对垃圾回收有什么影响。
+```java
+package com.test;
+
+public class FinalizeTest {
+    private static Block holder = null;
+
+    public static void main(String[] args) throws Exception {
+
+        holder = new Block();
+
+        holder = null;
+
+        System.gc();
+        Thread.sleep(1000);
+
+    }
+
+    static class Block {
+
+        byte[] _200M = new byte[200 * 1024 * 1024];
+
+    }
+}
+
+```
+注意：需要配置VM options变量：-XX:+PrintGCDetails，否则默认不会打印GC日志，GC相关配置如下：
+```
+-XX:+PrintGC 输出GC日志
+-XX:+PrintGCDetails 输出GC的详细日志
+-XX:+PrintGCTimeStamps 输出GC的时间戳（以基准时间的形式）
+-XX:+PrintGCDateStamps 输出GC的时间戳（以日期的形式，如 2013-05-04T21:53:59.234+0800）
+-XX:+PrintHeapAtGC 在进行GC的前后打印出堆的信息
+-Xloggc:../logs/gc.log 日志文件的输出路径
+```
+执行上面的程序的GC日志如下：
+```
+[GC (System.gc()) [PSYoungGen: 11007K->2398K(75776K)] 215807K->207206K(454656K), 0.0111418 secs] [Times: user=0.03 sys=0.00, real=0.01 secs] 
+[Full GC (System.gc()) [PSYoungGen: 2398K->0K(75776K)] [ParOldGen: 204808K->2183K(378880K)] 207206K->2183K(454656K), [Metaspace: 3545K->3545K(1056768K)], 0.0110013 secs] [Times: user=0.16 sys=0.00, real=0.01 secs] 
+Heap
+ PSYoungGen      total 75776K, used 650K [0x000000076b900000, 0x0000000770d80000, 0x00000007c0000000)
+  eden space 65024K, 1% used [0x000000076b900000,0x000000076b9a2a68,0x000000076f880000)
+  from space 10752K, 0% used [0x000000076f880000,0x000000076f880000,0x0000000770300000)
+  to   space 10752K, 0% used [0x0000000770300000,0x0000000770300000,0x0000000770d80000)
+ ParOldGen       total 378880K, used 2183K [0x00000006c2a00000, 0x00000006d9c00000, 0x000000076b900000)
+  object space 378880K, 0% used [0x00000006c2a00000,0x00000006c2c21de8,0x00000006d9c00000)
+ Metaspace       used 3553K, capacity 4496K, committed 4864K, reserved 1056768K
+  class space    used 380K, capacity 388K, committed 512K, reserved 1048576K
+```
+日志中PSYoungGen: 2398K->0K(75776K)证明执行完System.gc()之后，Block对象被如期的回收了，如果在Block类中重写了finalize方法，会是一样的结果么？
+```java
+package com.test;
+
+public class FinalizeTest {
+    private static Block holder = null;
+
+    public static void main(String[] args) throws Exception {
+
+        holder = new Block();
+
+        holder = null;
+
+        System.gc();
+        Thread.sleep(1000);
+
+    }
+
+    static class Block {
+
+        byte[] _200M = new byte[200 * 1024 * 1024];
+
+        @Override
+        protected void finalize()throws Throwable{
+            holder = this;
+            System.out.println("调用finalize");
+
+        }
+    }
+}
+
+```
+日志：
+```
+[GC (System.gc()) [PSYoungGen: 11007K->2366K(75776K)] 215807K->207174K(454656K), 0.0025648 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+[Full GC (System.gc()) [PSYoungGen: 2366K->0K(75776K)] [ParOldGen: 204808K->206983K(378880K)] 207174K->206983K(454656K), [Metaspace: 3545K->3545K(1056768K)], 0.0071940 secs] [Times: user=0.02 sys=0.00, real=0.01 secs] 
+调用finalize
+Heap
+ PSYoungGen      total 75776K, used 4552K [0x000000076b900000, 0x0000000770d80000, 0x00000007c0000000)
+  eden space 65024K, 7% used [0x000000076b900000,0x000000076bd72068,0x000000076f880000)
+  from space 10752K, 0% used [0x000000076f880000,0x000000076f880000,0x0000000770300000)
+  to   space 10752K, 0% used [0x0000000770300000,0x0000000770300000,0x0000000770d80000)
+ ParOldGen       total 378880K, used 206983K [0x00000006c2a00000, 0x00000006d9c00000, 0x000000076b900000)
+  object space 378880K, 54% used [0x00000006c2a00000,0x00000006cf421e48,0x00000006d9c00000)
+ Metaspace       used 4043K, capacity 4572K, committed 4864K, reserved 1056768K
+  class space    used 436K, capacity 460K, committed 512K, reserved 1048576K
+```
+发现finalize方法确实被触发了，但是Block对象还在内存中
