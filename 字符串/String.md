@@ -124,3 +124,26 @@ String类提供处理Unicode代码点（即字符）的方法，以及用于处�
   如果+前后都是字符串，编译时会直接拼在一起  
   如果+前后是一个对象，会创建一个StringBuilder然后append2个值
 * trim()：通过遍历String的时候char，判断第一个不是" "和最后一个不是" "的下标，然后使用substring()根据下标截取目标字符串
+* compare():
+```
+    public int compareTo(String anotherString) {
+        int len1 = value.length;
+        int len2 = anotherString.value.length;
+        int lim = Math.min(len1, len2);
+        char v1[] = value;
+        char v2[] = anotherString.value;
+
+        int k = 0;
+        while (k < lim) {
+            char c1 = v1[k];
+            char c2 = v2[k];
+            if (c1 != c2) {
+                return c1 - c2;
+            }
+            k++;
+        }
+        return len1 - len2;
+    }
+```
+  获取2个字符串的char[]，根据char[]较小的长度对比对应长度的char,从第一个char开始比大小，char大的字符串大，如果这些char都相等，则字符串更长的大
+* equals()：长度不同则判定为false，长度相对for对比char[]只要有一个不同这false
