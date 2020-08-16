@@ -114,3 +114,13 @@ String类提供处理Unicode代码点（即字符）的方法，以及用于处�
 * String 实际上是数据是一个final的字符数组，内容一旦被初始化后，其不能被修改的。
 * String 的Hash默认是0
 
+### 方法说明
+* getByte()：将String中的char[]逐个字符根据指定的编码格式转为byte数，默认UTF-8，例如0转为48,1转为49....
+* new String()：创建的是""字符串
+* intern()：  
+  常量池(constant pool)指的是在编译期被确定，并被保存在已编译的.class文件中的一些数据。它包括了关于类、方法、接口等中的常量，也包括字符串常量  
+  当调用 intern 方法时，如果池已经包含一个等于此 String 对象的字符串（用 equals(Object) 方法确定），则返回池中的字符串。否则，将此 String 对象添加到池中(复制一个新的String对象)，并返回此 String 对象的引用。
+* +号运算：
+  如果+前后都是字符串，编译时会直接拼在一起  
+  如果+前后是一个对象，会创建一个StringBuilder然后append2个值
+* trim()：通过遍历String的时候char，判断第一个不是" "和最后一个不是" "的下标，然后使用substring()根据下标截取目标字符串
