@@ -103,7 +103,6 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
 ```
 * append()：  
   先判断char[]的长度是否足够存储数据，不足则添加char[]的长度，添加长度的方式是调用Arrays.copyOff方法将当前char[]复制到一个长度更大的char[]中，然后将新char[]赋值给value，然后使用getChars()方法将参数字符写入value中
-  长度不足时计算新
 ```
     /**
      * Appends the specified string to this character sequence.
