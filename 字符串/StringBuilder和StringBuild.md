@@ -70,7 +70,8 @@ StringBuilder的StringBuilder不能安全使用多线程。 如果需要同步�
 
 ```
 * StringBuild继承自AbstractStringBuilder，从类中的方法可以看出，几乎所有的方法都是直接调用的super方法，也就是AbstractStringBuilder实现
-* StringBuffer和StringBuild的方法一模一样，只是在方法上加了synchronized来保证线程安全
+* StringBuffer和StringBuild的方法一模一样，StringBuffer只是在方法上加了synchronized来保证线程安全
+* AbstractStringBuilder可以看出StringBuffer和StringBuild本质上和String一样也是通过一个char[]存储字符数组，多了一个count统计当前已存储的char数
 ```
 abstract class AbstractStringBuilder implements Appendable, CharSequence {
     /**
@@ -83,7 +84,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
      */
     int count;
 ```
-* AbstractStringBuilder可以看出StringBuffer和StringBuild本质上和String一样也是通过一个char[]存储字符数组，多了一个count统计当前已存储的char数
+* new StringBuffer()和StringBuild()默认是创建一个长度为16的char[]
 ```
     /**
      * Constructs a string builder with no characters in it and an
@@ -100,7 +101,9 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
         value = new char[capacity];
     }
 ```
-* new StringBuffer()和StringBuild()默认是创建一个长度为16的char[]
+* append()：  
+  先判断char[]的长度是否足够存储数据，不足则添加char[]的长度，添加长度的方式是调用Arrays.copyOff方法将当前char[]复制到一个长度更大的char[]中，然后将新char[]赋值给value，然后使用getChars()方法将参数字符写入value中
+  长度不足时计算新
 ```
     /**
      * Appends the specified string to this character sequence.
@@ -143,5 +146,34 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
             value = Arrays.copyOf(value,
                     newCapacity(minimumCapacity));
         }
+    }
+      /**
+     * Returns a capacity at least as large as the given minimum capacity.
+     * Returns the current capacity increased by the same amount + 2 if
+     * that suffices.
+     * Will not return a capacity greater than {@code MAX_ARRAY_SIZE}
+     * unless the given minimum capacity is greater than that.
+     *
+     * @param  minCapacity the desired minimum capacity
+     * @throws OutOfMemoryError if minCapacity is less than zero or
+     *         greater than Integer.MAX_VALUE
+     */
+    private int newCapacity(int minCapacity) {
+        // overflow-conscious code
+        int newCapacity = (value.length << 1) + 2;
+        if (newCapacity - minCapacity < 0) {
+            newCapacity = minCapacity;
+        }
+        return (newCapacity <= 0 || MAX_ARRAY_SIZE - newCapacity < 0)
+            ? hugeCapacity(minCapacity)
+            : newCapacity;
+    }
+    
+        private int hugeCapacity(int minCapacity) {
+        if (Integer.MAX_VALUE - minCapacity < 0) { // overflow
+            throw new OutOfMemoryError();
+        }
+        return (minCapacity > MAX_ARRAY_SIZE)
+            ? minCapacity : MAX_ARRAY_SIZE;
     }
  ```   
