@@ -69,3 +69,79 @@ StringBuilder的StringBuilder不能安全使用多线程。 如果需要同步�
 除非另有说明，否则将null参数传递给null中的构造函数或方法将导致抛出NullPointerException 。 
 
 ```
+* StringBuild继承自AbstractStringBuilder，从类中的方法可以看出，几乎所有的方法都是直接调用的super方法，也就是AbstractStringBuilder实现
+* StringBuffer和StringBuild的方法一模一样，只是在方法上加了synchronized来保证线程安全
+```
+abstract class AbstractStringBuilder implements Appendable, CharSequence {
+    /**
+     * The value is used for character storage.
+     */
+    char[] value;
+
+    /**
+     * The count is the number of characters used.
+     */
+    int count;
+```
+* AbstractStringBuilder可以看出StringBuffer和StringBuild本质上和String一样也是通过一个char[]存储字符数组，多了一个count统计当前已存储的char数
+```
+    /**
+     * Constructs a string builder with no characters in it and an
+     * initial capacity of 16 characters.
+     */
+    public StringBuilder() {
+        super(16);
+    }
+    
+        /**
+     * Creates an AbstractStringBuilder of the specified capacity.
+     */
+    AbstractStringBuilder(int capacity) {
+        value = new char[capacity];
+    }
+```
+* new StringBuffer()和StringBuild()默认是创建一个长度为16的char[]
+```
+    /**
+     * Appends the specified string to this character sequence.
+     * <p>
+     * The characters of the {@code String} argument are appended, in
+     * order, increasing the length of this sequence by the length of the
+     * argument. If {@code str} is {@code null}, then the four
+     * characters {@code "null"} are appended.
+     * <p>
+     * Let <i>n</i> be the length of this character sequence just prior to
+     * execution of the {@code append} method. Then the character at
+     * index <i>k</i> in the new character sequence is equal to the character
+     * at index <i>k</i> in the old character sequence, if <i>k</i> is less
+     * than <i>n</i>; otherwise, it is equal to the character at index
+     * <i>k-n</i> in the argument {@code str}.
+     *
+     * @param   str   a string.
+     * @return  a reference to this object.
+     */
+    public AbstractStringBuilder append(String str) {
+        if (str == null)
+            return appendNull();
+        int len = str.length();
+        ensureCapacityInternal(count + len);
+        str.getChars(0, len, value, count);
+        count += len;
+        return this;
+    }
+ 
+  /**
+     * For positive values of {@code minimumCapacity}, this method
+     * behaves like {@code ensureCapacity}, however it is never
+     * synchronized.
+     * If {@code minimumCapacity} is non positive due to numeric
+     * overflow, this method throws {@code OutOfMemoryError}.
+     */
+    private void ensureCapacityInternal(int minimumCapacity) {
+        // overflow-conscious code
+        if (minimumCapacity - value.length > 0) {
+            value = Arrays.copyOf(value,
+                    newCapacity(minimumCapacity));
+        }
+    }
+ ```   
