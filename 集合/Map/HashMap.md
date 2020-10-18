@@ -168,4 +168,52 @@ HashMap的一个实例有两个影响其性能的参数： 初始容量和负载
      *为了避免进行扩容、树形化选择的冲突，这个值不能小于 4 * TREEIFY_THRESHOLD
      */
     static final int MIN_TREEIFY_CAPACITY = 64;
+    
+    /**
+    * HashMap用来存储数据的表，一个Node数组，Node在后面介绍
+    *表，在第一次使用时初始化，并将其大小调整为
+    *必要的。分配时，长度总是2的幂。
+    *（在某些操作中，我们也允许长度为零，以允许
+    *当前不需要的引导机制。）
+    */
+    transient Node<K,V>[] table;
+
+    /**
+    *保存缓存的entrySet（）。注意，使用了AbstractMap字段
+    *对于keySet（）和values（）。
+    */
+    transient Set<Map.Entry<K,V>> entrySet;
+
+    /**
+     * map中kv键值对的数量
+     */
+    transient int size;
+
+    /**
+     * modCount用于记录HashMap的修改次数,
+     * 在HashMap的put(),get(),remove(),Interator()等方法中,都使用了该属性
+     * 由于HashMap不是线程安全的,所以在迭代的时候,会将modCount赋值到迭代器的expectedModCount属性中,然后进行迭代,
+     * 如果在迭代的过程中HashMap被其他线程修改了,modCount的数值就会发生变化,
+     * 这个时候expectedModCount和ModCount不相等,
+     * 迭代器就会抛出ConcurrentModificationException()异常
+    */
+    transient int modCount;
+
+    /**
+     *threshold表示当HashMap的size大于threshold时会执行resize操作。 
+     *threshold=capacity*loadFactor
+    int threshold;
+
+    /**
+     * loadFactor译为装载因子。装载因子用来衡量HashMap满的程度。loadFactor的默认值为0.75f。计算HashMap的实时装载因子的方法为：size/capacity，而不是占用桶的数量去除以capacity。
+     *
+     * @serial
+     */
+    final float loadFactor;
+
 ```
+
+
+
+
+
