@@ -212,6 +212,10 @@ HashMap的一个实例有两个影响其性能的参数： 初始容量和负载
     final float loadFactor;
 
 ```
+总结：
+* keyset()方法，返回的是内部类Map.KeySet,该对象继承自AbstractSet，遍历这个对象实质上是遍历Map中存储的Note数组的所有元素，从Note数组中下标为0的Note开始遍历，逐个获取该Note对象中的next下一个Node，当走到最后一个Node后，获取Note数组下标+1的Note后继续遍历
+* values()和keyset()同理
+* map本身遍历也和values()和keyset()同理
 
 
 
