@@ -55,8 +55,9 @@ import java.util.stream.Stream;
  * 否则，这些方法的结果反映的瞬态状态可能足以用于监视或估计目的，但不能用于程序控制。
  *
  * 当冲突太多时，表会被动态扩展(例如，键具有不同的哈希码，但落在同一个槽内，对表大小进行模调)，
- * 预期的平均效果是每个映射维持大约两个bin(和对应0.75负载因子阈值调整大小对应)。
- * 随着映射的添加和删除，这个平均值可能会有很大的差异，但总的来说，对于哈希表来说，
+ * 预期的平均效果是每个Map维持大约2个bin（bin是指数组的元素，也就是说map初始的数组大小为2）
+ * (和对应0.75负载因子阈值调整大小对应)。
+ * 随着Map的添加和删除，这个平均值可能会有很大的差异，但总的来说，对于哈希表来说，
  * 这维护了一个普遍接受的时间/空间折衷可能是一个相对缓慢的操作。
  * 如果可能，最好在创建Map对象的时候，根据预计存入键值对的数量，
  * 在构造函数中提供【initialCapacity】，以免Map反复的扩容操作
@@ -129,51 +130,34 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /*
      * Overview:
      *
-     * The primary design goal of this hash table is to maintain
-     * concurrent readability (typically method get(), but also
-     * iterators and related methods) while minimizing update
-     * contention. Secondary goals are to keep space consumption about
-     * the same or better than java.util.HashMap, and to support high
-     * initial insertion rates on an empty table by many threads.
+     * 这个哈希表的主要设计目标是在最小化更新争用同步锁导致阻塞的同时保持并发可读性(通常是方法get()，也包括迭代器和相关方法)。
+     * 次要目标是保持与java.util.HashMap相同或更好的空间消耗，并支持在空表上由多个线程执行的高初始插入率。
      *
-     * This map usually acts as a binned (bucketed) hash table.  Each
-     * key-value mapping is held in a Node.  Most nodes are instances
-     * of the basic Node class with hash, key, value, and next
-     * fields. However, various subclasses exist: TreeNodes are
-     * arranged in balanced trees, not lists.  TreeBins hold the roots
-     * of sets of TreeNodes. ForwardingNodes are placed at the heads
-     * of bins during resizing. ReservationNodes are used as
-     * placeholders while establishing values in computeIfAbsent and
-     * related methods.  The types TreeBin, ForwardingNode, and
-     * ReservationNode do not hold normal user keys, values, or
-     * hashes, and are readily distinguishable during search etc
-     * because they have negative hash fields and null key and value
-     * fields. (These special nodes are either uncommon or transient,
-     * so the impact of carrying around some unused fields is
-     * insignificant.)
+     * 这个映射通常充当一个bined（bucked）哈希表。
+     * 每个键值映射都保存在一个Node对象中。大多数Node对象是具有hash、key、value和next字段的基本Node类的实例。
+     * 如果相同hash的key太多，Node结构的链路存储会被红黑树替代TreeNodes
+     * TreeBins含有一系列TreeNodes的root。
+     * 在调整大小时，转发节点被放置在箱子的头部。
+     * 在computeIfAbsent和相关方法中建立值时，ReservationNodes用作占位符。
+     * TreeBin、ForwardingNode和ReservationNode类型不包含正常的key、value或hash，
+     * 并且在搜索等过程中很容易区分，因为它们具有负哈希字段和空的键和值字段。
+     * （这些特殊节点不是不常见的，就是暂时的，所以携带一些未使用的字段的影响是微不足道的。）
      *
-     * The table is lazily initialized to a power-of-two size upon the
-     * first insertion.  Each bin in the table normally contains a
-     * list of Nodes (most often, the list has only zero or one Node).
-     * Table accesses require volatile/atomic reads, writes, and
-     * CASes.  Because there is no other way to arrange this without
-     * adding further indirections, we use intrinsics
-     * (sun.misc.Unsafe) operations.
+     * 在第一次插入时，表被惰性地初始化为2级的大小。
+     * 表中的每个bin通常包含一个Node列表(通常，该列表只有零个或一个Node)。
+     * 表访问需要volatile/原子的读、写和用例。
+     * 因为没有其他方法可以在不添加进一步间接的情况下进行安排
+     * 所以我们使用intrinsics (sun.misc.Unsafe)操作。
+     * 
+     * 我们使用Node的hash字段的顶部(符号)位用于控制目的——由于寻址约束，无论如何它都是可用的。
+     * 具有负散列字段的节点在映射方法中会被特殊处理或忽略。
      *
-     * We use the top (sign) bit of Node hash fields for control
-     * purposes -- it is available anyway because of addressing
-     * constraints.  Nodes with negative hash fields are specially
-     * handled or ignored in map methods.
-     *
-     * Insertion (via put or its variants) of the first node in an
-     * empty bin is performed by just CASing it to the bin.  This is
-     * by far the most common case for put operations under most
-     * key/hash distributions.  Other update operations (insert,
-     * delete, and replace) require locks.  We do not want to waste
-     * the space required to associate a distinct lock object with
-     * each bin, so instead use the first node of a bin list itself as
-     * a lock. Locking support for these locks relies on builtin
-     * "synchronized" monitors.
+     * 将第一个Node插入（通过put或其变体）到一个空的bin中，只需将其放入bin即可。
+     * 到目前为止，这是大多数key/hash分布下的put操作最常见的情况。
+     * 其他更新操作（插入、删除和替换）需要锁定。
+     * 我们不想浪费将不同锁对象与每个bin关联所需的空间，
+     * 因此应该使用bin列表本身的第一个节点作为锁。
+     * “同步锁”依赖于这些内置的锁。
      *
      * Using the first node of a list as a lock does not by itself
      * suffice though: When a node is locked, any update must first
