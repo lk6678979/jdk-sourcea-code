@@ -159,26 +159,20 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * 因此应该使用bin列表本身的第一个节点作为锁。
      * “同步锁”依赖于这些内置的锁。
      *
-     * Using the first node of a list as a lock does not by itself
-     * suffice though: When a node is locked, any update must first
-     * validate that it is still the first node after locking it, and
-     * retry if not. Because new nodes are always appended to lists,
-     * once a node is first in a bin, it remains first until deleted
-     * or the bin becomes invalidated (upon resizing).
+     * 使用列表的第一个节点作为锁本身是不够的，不足以解决线程安全问题:
+     * 当一个节点被锁定时，任何更新必须首先验证它仍然是锁定后的第一个节点
+     *（拿到锁喉，这个Node可能已经bin的第一个Node对象了），如果不是，则重试。
+     * 因为新的节点总是被添加到列表中，所以一旦一个节点首先在bin中，它就会保持在首位，直到删除或者bin(在调整大小时)失效。
+     * 而被删除或者调整大小后，被锁住的这个对象可能就不是bin的首个node，锁住它，
+     * 别的操作还是会拿到第一个Node执行操作，会有线程安全问题
      *
-     * The main disadvantage of per-bin locks is that other update
-     * operations on other nodes in a bin list protected by the same
-     * lock can stall, for example when user equals() or mapping
-     * functions take a long time.  However, statistically, under
-     * random hash codes, this is not a common problem.  Ideally, the
-     * frequency of nodes in bins follows a Poisson distribution
-     * (http://en.wikipedia.org/wiki/Poisson_distribution) with a
-     * parameter of about 0.5 on average, given the resizing threshold
-     * of 0.75, although with a large variance because of resizing
-     * granularity. Ignoring variance, the expected occurrences of
-     * list size k are (exp(-0.5) * pow(0.5, k) / factorial(k)). The
-     * first values are:
      *
+     * 每一个bin的首个Node作为锁的缺点：受同一锁保护的bin列表中其他Node上的其他更新操作可能会暂停
+     * 然而，统计上，在随机哈希码下，这并不是一个常见的问题。
+     * 理想情况下，如果调整阈值*为0.75，则箱中节点的频率遵循平均约为0.5的泊松分布参数，
+     * 尽管由于调整粒度而具有较大的方差。忽略方差，
+     * 列表大小k的预期出现次数为（exp（-0.5）*pow（0.5，k）/阶乘（k））。
+     * 第一个值是：
      * 0:    0.60653066
      * 1:    0.30326533
      * 2:    0.07581633
@@ -188,10 +182,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * 6:    0.00001316
      * 7:    0.00000094
      * 8:    0.00000006
-     * more: less than 1 in ten million
+     * 更多：少于一千万分之一
      *
-     * Lock contention probability for two threads accessing distinct
-     * elements is roughly 1 / (8 * #elements) under random hashes.
+     * 在随机哈希表下，访问不同元素的两个线程的锁争用概率大约是1 /(8 * #元素)。
      *
      * Actual hash code distributions encountered in practice
      * sometimes deviate significantly from uniform randomness.  This
