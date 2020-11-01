@@ -186,24 +186,17 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      *
      * 在随机哈希表下，访问不同元素的两个线程的锁争用概率大约是1 /(8 * #元素)。
      *
-     * Actual hash code distributions encountered in practice
-     * sometimes deviate significantly from uniform randomness.  This
-     * includes the case when N > (1<<30), so some keys MUST collide.
-     * Similarly for dumb or hostile usages in which multiple keys are
-     * designed to have identical hash codes or ones that differs only
-     * in masked-out high bits. So we use a secondary strategy that
-     * applies when the number of nodes in a bin exceeds a
-     * threshold. These TreeBins use a balanced tree to hold nodes (a
-     * specialized form of red-black trees), bounding search time to
-     * O(log N).  Each search step in a TreeBin is at least twice as
-     * slow as in a regular list, but given that N cannot exceed
-     * (1<<64) (before running out of addresses) this bounds search
-     * steps, lock hold times, etc, to reasonable constants (roughly
-     * 100 nodes inspected per operation worst case) so long as keys
-     * are Comparable (which is very common -- String, Long, etc).
-     * TreeBin nodes (TreeNodes) also maintain the same "next"
-     * traversal pointers as regular nodes, so can be traversed in
-     * iterators in the same way.
+     * 实际中遇到的实际哈希码分布有时会明显偏离均匀随机性。
+     * 这包括N>（1<<30）时的情况，因此某些关键点必须碰撞。
+     * 类似地，对于一些愚蠢或恶意的用法，多个密钥被设计成具有相同的哈希码，
+     * 或者只在隐藏的高位上有不同。
+     * 因此，我们使用第二种策略，当bin中的节点数超过阈值时，该策略适用。
+     * 这些树型图使用平衡树来保存节点（红黑树的一种特殊形式），将搜索时间限定为O（logn）。
+     * TreeBin中的每个搜索步骤至少是常规列表中搜索步骤的两倍，但考虑到N不能超过（1<<64）（在地址用完之前），
+     * 这就把搜索步骤、锁保持时间等限制在合理的常量（每个操作的最坏情况下大约检查100个节点），
+     * 只要密钥是可比较的（这是非常常见的字符串，long，等等）。
+     * TreeBin节点（TreeNodes）也维护与常规节点相同的“next”遍历指针，
+     * 因此可以以相同的方式在迭代器中遍历。
      *
      * The table is resized when occupancy exceeds a percentage
      * threshold (nominally, 0.75, but see below).  Any thread
