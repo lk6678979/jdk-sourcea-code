@@ -198,133 +198,85 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * TreeBin节点（TreeNodes）也维护与常规节点相同的“next”遍历指针，
      * 因此可以以相同的方式在迭代器中遍历。
      *
-     * The table is resized when occupancy exceeds a percentage
-     * threshold (nominally, 0.75, but see below).  Any thread
-     * noticing an overfull bin may assist in resizing after the
-     * initiating thread allocates and sets up the replacement array.
-     * However, rather than stalling, these other threads may proceed
-     * with insertions etc.  The use of TreeBins shields us from the
-     * worst case effects of overfilling while resizes are in
-     * progress.  Resizing proceeds by transferring bins, one by one,
-     * from the table to the next table. However, threads claim small
-     * blocks of indices to transfer (via field transferIndex) before
-     * doing so, reducing contention.  A generation stamp in field
-     * sizeCtl ensures that resizings do not overlap. Because we are
-     * using power-of-two expansion, the elements from each bin must
-     * either stay at same index, or move with a power of two
-     * offset. We eliminate unnecessary node creation by catching
-     * cases where old nodes can be reused because their next fields
-     * won't change.  On average, only about one-sixth of them need
-     * cloning when a table doubles. The nodes they replace will be
-     * garbage collectable as soon as they are no longer referenced by
-     * any reader thread that may be in the midst of concurrently
-     * traversing table.  Upon transfer, the old table bin contains
-     * only a special forwarding node (with hash field "MOVED") that
-     * contains the next table as its key. On encountering a
-     * forwarding node, access and update operations restart, using
-     * the new table.
+     * 当占用率超过百分比阈值(名义上为0.75，但见下文)时，将调整表的大小。
+     * 在初始化线程分配和设置替换数组后，任何注意到容器过满的线程都可以帮助调整大小。
+     * 但是，这些其他线程可以继续执行插入等操作，而不是停止。
+     * TreeBins的使用可以保护我们在调整大小的过程中避免最坏的情况下过度填充的影响。
+     * 调整大小的过程是通过一个接一个地将容器从表转移到下一个表。
+     * 不过，线程在传输之前会要求传输一小块索引(通过field transferIndex)，
+     * 从而减少争用。字段sizeCtl中的生成戳可确保大小不重叠。
+     * 因为我们使用的是2的幂展开，所以每个容器中的元素必须保持在相同的索引中，或者以2的幂偏移量移动。
+     * 我们通过捕捉由于下一个字段不更改而可以重用旧节点的情况来消除不必要的节点创建。
+     * 平均而言，当一个表翻倍时，只有大约六分之一需要克隆。
+     * 它们替换的节点一旦不再被并发遍历表中的任何读线程引用，就将成为垃圾回收。
+     * 在传输时，旧的表bin只包含一个特殊的转发节点(哈希字段为“MOVED”)，
+     * 它包含下一个表作为它的键。在遇到转发节点时，使用新表重新启动访问和更新操作。
      *
-     * Each bin transfer requires its bin lock, which can stall
-     * waiting for locks while resizing. However, because other
-     * threads can join in and help resize rather than contend for
-     * locks, average aggregate waits become shorter as resizing
-     * progresses.  The transfer operation must also ensure that all
-     * accessible bins in both the old and new table are usable by any
-     * traversal.  This is arranged in part by proceeding from the
-     * last bin (table.length - 1) up towards the first.  Upon seeing
-     * a forwarding node, traversals (see class Traverser) arrange to
-     * move to the new table without revisiting nodes.  To ensure that
-     * no intervening nodes are skipped even when moved out of order,
-     * a stack (see class TableStack) is created on first encounter of
-     * a forwarding node during a traversal, to maintain its place if
-     * later processing the current table. The need for these
-     * save/restore mechanics is relatively rare, but when one
-     * forwarding node is encountered, typically many more will be.
-     * So Traversers use a simple caching scheme to avoid creating so
-     * many new TableStack nodes. (Thanks to Peter Levart for
-     * suggesting use of a stack here.)
+     * 每个容器传输都需要它的容器锁，在调整大小时，它可能会暂停等待锁。
+     * 但是，由于其他线程可以加入并帮助调整大小，而不是争用锁，
+     * 因此随着调整大小的进展，平均聚合等待时间会缩短。
+     * 传输操作还必须确保旧表和新表中的所有可访问的容器在任何遍历中都可用。
+     * 这部分是通过从最后一个bin(表)开始进行安排的。长度- 1)到第一个。
+     * 在看到转发节点后，遍历(参见类遍历器)安排移动到新表，而无需重新访问节点。
+     * 为了确保即使在无序移动时也不会跳过中间节点，
+     * 在遍历过程中第一次遇到转发节点时将创建一个堆栈(参见类TableStack)，
+     * 以便在以后处理当前表时保持其位置。
+     * 对这些保存/恢复机制的需求相对较少，
+     * 但当遇到一个转发节点时，
+     * 通常会遇到更多的转发节点。
+     * 因此，遍历器使用一个简单的缓存方案来避免创建如此多的新TableStack节点。
+     * (感谢Peter Levart在这里建议使用堆栈。)
      *
-     * The traversal scheme also applies to partial traversals of
-     * ranges of bins (via an alternate Traverser constructor)
-     * to support partitioned aggregate operations.  Also, read-only
-     * operations give up if ever forwarded to a null table, which
-     * provides support for shutdown-style clearing, which is also not
-     * currently implemented.
+     * 遍历模式还适用于对容器范围的部分遍历(通过另一个遍历构造函数)，
+     * 以支持分区聚合操作。此外，如果只读操作被转发到一个空表，
+     * 那么它将放弃，这提供了对关闭风格清除的支持，而这也是目前还没有实现的。
      *
-     * Lazy table initialization minimizes footprint until first use,
-     * and also avoids resizings when the first operation is from a
-     * putAll, constructor with map argument, or deserialization.
-     * These cases attempt to override the initial capacity settings,
-     * but harmlessly fail to take effect in cases of races.
+     * Lazy表初始化可以最大限度地减少首次使用前的占用空间，
+     * 并且在第一个操作来自putAll、带有map参数的构造函数或反序列化时也避免了调整大小。
+     * 这些案例试图覆盖初始容量设置，但在种族的情况下无法生效。
      *
-     * The element count is maintained using a specialization of
-     * LongAdder. We need to incorporate a specialization rather than
-     * just use a LongAdder in order to access implicit
-     * contention-sensing that leads to creation of multiple
-     * CounterCells.  The counter mechanics avoid contention on
-     * updates but can encounter cache thrashing if read too
-     * frequently during concurrent access. To avoid reading so often,
-     * resizing under contention is attempted only upon adding to a
-     * bin already holding two or more nodes. Under uniform hash
-     * distributions, the probability of this occurring at threshold
-     * is around 13%, meaning that only about 1 in 8 puts check
-     * threshold (and after resizing, many fewer do so).
+     * 使用LongAdder的专门化来维护元素计数。
+     * 为了访问导致创建多个countercell的隐式竞争感知，我们需要合并一个专门化，
+     * 而不是仅仅使用一个LongAdder。
+     * 计数器机制避免了更新上的争用，但如果在并发访问期间读取过于频繁，可能会遇到缓存抖动。
+     * 为了避免读取如此频繁，只有在添加到一个已经拥有两个或更多节点的bin时才尝试在争用下调整大小。
+     * 在均匀哈希分布下，发生在阈值处的概率约为13%，
+     * 这意味着只有大约1 / 8的人设置检查阈值(在调整大小后，这样做的人就更少了)。
      *
-     * TreeBins use a special form of comparison for search and
-     * related operations (which is the main reason we cannot use
-     * existing collections such as TreeMaps). TreeBins contain
-     * Comparable elements, but may contain others, as well as
-     * elements that are Comparable but not necessarily Comparable for
-     * the same T, so we cannot invoke compareTo among them. To handle
-     * this, the tree is ordered primarily by hash value, then by
-     * Comparable.compareTo order if applicable.  On lookup at a node,
-     * if elements are not comparable or compare as 0 then both left
-     * and right children may need to be searched in the case of tied
-     * hash values. (This corresponds to the full list search that
-     * would be necessary if all elements were non-Comparable and had
-     * tied hashes.) On insertion, to keep a total ordering (or as
-     * close as is required here) across rebalancings, we compare
-     * classes and identityHashCodes as tie-breakers. The red-black
-     * balancing code is updated from pre-jdk-collections
-     * (http://gee.cs.oswego.edu/dl/classes/collections/RBCell.java)
-     * based in turn on Cormen, Leiserson, and Rivest "Introduction to
-     * Algorithms" (CLR).
+     * 树状结构为搜索和相关操作使用一种特殊的比较形式(这是我们不能使用树状结构等现有集合的主要原因)。
+     * TreeBins包含可比较的元素，但可能包含其他元素，
+     * 以及可比较但对相同的T不一定可比较的元素，因此我们不能在它们之间调用compareTo。
+     * 为了处理这个问题，该树首先按照哈希值排序，然后按照Comparable.compareTo排序(如果适用的话)。
+     * 在节点上查找时，如果元素不可比较或比较为0，那么在绑定散列值的情况下，可能需要同时搜索左子和右子。
+     * (如果所有元素都是不可比较的，并且绑定了哈希值，那么这就对应了完整的列表搜索。)
+     * 在插入时，为了在重平衡中保持一个完整的顺序(或者尽可能接近这里所要求的顺序)，
+     * 我们比较类和identityhashcode作为切入点。
+     * 红黑平衡代码是根据Cormen、Leiserson和Rivest的“算法介绍”(CLR)依次从pre-jdk集合
+     * (http://gee.cs.oswego.edu/dl/classes/collections/RBCell.java)中更新的。
      *
-     * TreeBins also require an additional locking mechanism.  While
-     * list traversal is always possible by readers even during
-     * updates, tree traversal is not, mainly because of tree-rotations
-     * that may change the root node and/or its linkages.  TreeBins
-     * include a simple read-write lock mechanism parasitic on the
-     * main bin-synchronization strategy: Structural adjustments
-     * associated with an insertion or removal are already bin-locked
-     * (and so cannot conflict with other writers) but must wait for
-     * ongoing readers to finish. Since there can be only one such
-     * waiter, we use a simple scheme using a single "waiter" field to
-     * block writers.  However, readers need never block.  If the root
-     * lock is held, they proceed along the slow traversal path (via
-     * next-pointers) until the lock becomes available or the list is
-     * exhausted, whichever comes first. These cases are not fast, but
-     * maximize aggregate expected throughput.
+     * TreeBins还需要额外的锁定机制。即使在更新期间，
+     * 读者也可以遍历列表，但树遍历就不行了，
+     * 这主要是因为树的旋转可能会改变根节点和/或它的链接。
+     * TreeBins包括一个寄生在主链同步策略上的简单读写锁机制:
+     * 与插入或删除相关的结构调整已经是链锁(因此不能与其他写器冲突)，
+     * 但必须等待正在进行的读器完成。因为这样的服务员只能有一个，
+     * 所以我们使用一个简单的方案，使用一个“waiter”字段来阻止写入器。
+     * 然而，读者永远不需要阻塞。如果根锁被持有，它们将沿着缓慢的遍历路径(通过下一个指针)进行，
+     * 直到锁可用或链表被耗尽(以最先到达的为准)。
+     * 这些情况并不快，但最大限度地提高了预期总吞吐量。
      *
-     * Maintaining API and serialization compatibility with previous
-     * versions of this class introduces several oddities. Mainly: We
-     * leave untouched but unused constructor arguments refering to
-     * concurrencyLevel. We accept a loadFactor constructor argument,
-     * but apply it only to initial table capacity (which is the only
-     * time that we can guarantee to honor it.) We also declare an
-     * unused "Segment" class that is instantiated in minimal form
-     * only when serializing.
+     * 维护API和序列化与以前版本的这个类的兼容性引入了一些奇怪的东西。
+     * 主要内容:我们保留未修改但未使用的构造函数参数来引用concurrencyLevel。
+     * 我们接受一个loadFactor构造函数参数，
+     * 但仅将其应用于初始表容量(这是我们能够保证使用它的唯一时间)。
+     * 我们还声明了一个未使用的“段”类，只有在序列化时才以最小形式实例化它
      *
-     * Also, solely for compatibility with previous versions of this
-     * class, it extends AbstractMap, even though all of its methods
-     * are overridden, so it is just useless baggage.
-     *
-     * This file is organized to make things a little easier to follow
-     * while reading than they might otherwise: First the main static
-     * declarations and utilities, then fields, then main public
-     * methods (with a few factorings of multiple public methods into
-     * internal ones), then sizing methods, trees, traversers, and
-     * bulk operations.
+     * 而且，仅仅为了与这个类以前的版本兼容，它扩展了AbstractMap，
+     *  尽管它的所有方法都被覆盖了，因此它只是无用的包袱
+     *  
+     *  这个文件被组织使事情更容易遵循阅读时比他们可能:
+     *  第一主静态声明和实用程序,然后字段,然后主要公共方法
+     *  (有几把多个公共方法到内部的),然后分级方法,树、转盘和批量操作。
      */
 
     /* ---------------- Constants -------------- */
